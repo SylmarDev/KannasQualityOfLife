@@ -24,7 +24,7 @@ namespace SylmarDev.MaxQoL
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
 	
 	//We will be using 3 modules from R2API: ItemAPI to add our item, ItemDropAPI to have our item drop ingame, and LanguageAPI to add our language tokens.
-    [R2APISubmoduleDependency(nameof(ItemAPI), nameof(ItemDropAPI), nameof(LanguageAPI), nameof(BuffAPI))]
+    [R2APISubmoduleDependency(nameof(ItemAPI), nameof(LanguageAPI))]
 
     // trying to make client side only
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod)]
@@ -58,11 +58,6 @@ namespace SylmarDev.MaxQoL
             },
             new ScrapperLocation
             {
-                Position = new Vector3(-122.1f, -23.7f, -5.2f),
-                Rotation = new Vector3(0f, 72.6f, 0f)
-            },
-            new ScrapperLocation
-            {
                 Position = new Vector3(-95.1f, -25.2f, -45.2f),
                 Rotation = new Vector3(0f, 72.6f, 0f)
             },
@@ -70,32 +65,13 @@ namespace SylmarDev.MaxQoL
             {
                 Position = new Vector3(-134.1f, -25.4f, -20.2f),
                 Rotation = new Vector3(0f, 72.6f, 0f)
+            },
+            new ScrapperLocation
+            {
+                Position = new Vector3(-122.1f, -23.7f, -5.2f),
+                Rotation = new Vector3(0f, 72.6f, 0f)
             }
         };
-
-        private void BaazaarController_Start(On.RoR2.BazaarController.orig_Awake orig, BazaarController self)
-        {
-            orig.Invoke(self);
-            Log.LogMessage("hook successful");
-            bool active = NetworkServer.active;
-            if (active)
-            {
-                foreach (ScrapperLocation location in slocations)
-                {
-                    SpawnScrapper(location);
-                }
-            }
-        }
-
-        private void SpawnScrapper(ScrapperLocation location)
-        {
-            DirectorPlacementRule directorPlacementRule = new DirectorPlacementRule();
-			directorPlacementRule.placementMode = 0;
-			SpawnCard spawnCard = Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscScrapper");
-			GameObject spawnedInstance = spawnCard.DoSpawn(location.Position, Quaternion.identity, new DirectorSpawnRequest(spawnCard, directorPlacementRule, Run.instance.runRNG)).spawnedInstance;
-			spawnedInstance.transform.eulerAngles = location.Rotation;
-			NetworkServer.Spawn(spawnedInstance);
-        }
 
         //The Awake() method is run at the very start when the game is initialized.
         public void Awake()
@@ -110,19 +86,97 @@ namespace SylmarDev.MaxQoL
             //    assets = AssetBundle.LoadFromStream(stream);
             //}
 
+            Log.LogInfo("Assigning hooks. . .");
             // todo
             // instant scrapper and printer
             // scrapper in shop
-            On.RoR2.BazaarController.Awake += BaazaarController_Start;
+            On.RoR2.BazaarController.Awake += BazaarController_Awake;
 
             // ping portals in shop to tell which it is
+            On.RoR2.Util.GetBestBodyName += Util_GetBestBodyName;
             // teleporter instantly finishes after boss
+            On.RoR2.TeleporterInteraction.UpdateMonstersClear += TeleporterInteraction_UpdateMonstersClear;
             // red chest and newt altars are pinged at the start of the map
             // guarenteed cleansing pool on sanctuary
+            // one frog pet
+            On.RoR2.FrogController.Pet += FrogController_Pet;
 
 
             // This line of log will appear in the bepinex console when the Awake method is done.
             Log.LogInfo(nameof(Awake) + " done.");
+        }
+
+        
+
+        private void BazaarController_Awake(On.RoR2.BazaarController.orig_Awake orig, BazaarController self)
+        {
+            orig(self);
+            bool active = NetworkServer.active;
+            var i = 0;
+            if (active)
+            {
+                foreach (ScrapperLocation location in slocations)
+                {
+                    if (i >= PlayerCharacterMasterController.instances.Count)
+                    {
+                        break;
+                    }
+                    SpawnScrapper(location);
+                    i++;
+                }
+            }
+        }
+
+        private void SpawnScrapper(ScrapperLocation location)
+        {
+            DirectorPlacementRule directorPlacementRule = new DirectorPlacementRule();
+            directorPlacementRule.placementMode = 0;
+            SpawnCard spawnCard = Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscScrapper");
+            GameObject spawnedInstance = spawnCard.DoSpawn(location.Position, Quaternion.identity, new DirectorSpawnRequest(spawnCard, directorPlacementRule, Run.instance.runRNG)).spawnedInstance;
+            spawnedInstance.transform.eulerAngles = location.Rotation;
+            NetworkServer.Spawn(spawnedInstance);
+        }
+
+        private string Util_GetBestBodyName(On.RoR2.Util.orig_GetBestBodyName orig, GameObject bodyObject)
+        {
+            var name = bodyObject.name;
+            var flag = name.Contains("SeerStation");
+            string result = "";
+
+            if (flag)
+            {
+                SeerStationController component = bodyObject.GetComponent<SeerStationController>();
+                SceneIndex networktargetSceneDefIndex = (SceneIndex)component.NetworktargetSceneDefIndex;
+                //Log.LogMessage(Language.GetString(SceneCatalog.GetSceneDef(networktargetSceneDefIndex).portalSelectionMessageString));
+                var seerText = Language.GetString(SceneCatalog.GetSceneDef(networktargetSceneDefIndex).portalSelectionMessageString).Substring(31);
+                result = "A dream of" + seerText.Remove(seerText.Length - 2, 2) + " ";
+            } else
+            {
+                result = orig(bodyObject);
+            }
+            return result;
+        }
+
+        private void TeleporterInteraction_UpdateMonstersClear(On.RoR2.TeleporterInteraction.orig_UpdateMonstersClear orig, TeleporterInteraction self)
+        {
+            orig(self);
+            if (self.monstersCleared && self.holdoutZoneController && self.activationState == TeleporterInteraction.ActivationState.Charging && self.chargeFraction > 0.02f)
+            {
+                int displayChargePercent = TeleporterInteraction.instance.holdoutZoneController.displayChargePercent;
+                float runStopwatch = Run.instance.GetRunStopwatch();
+                int num = Math.Min(Util.GetItemCountForTeam(self.holdoutZoneController.chargingTeam, RoR2Content.Items.FocusConvergence.itemIndex, true, true), 3);
+                float num2 = (100f - (float)displayChargePercent) / 100f * (TeleporterInteraction.instance.holdoutZoneController.baseChargeDuration / (1f + 0.3f * (float)num));
+                num2 = (float)Math.Round(num2, 2);
+                float runStopwatch2 = runStopwatch + (float)Math.Round((double)num2, 2);
+                Run.instance.SetRunStopwatch(runStopwatch2);
+                TeleporterInteraction.instance.holdoutZoneController.FullyChargeHoldoutZone();
+            }
+        }
+
+        private void FrogController_Pet(On.RoR2.FrogController.orig_Pet orig, FrogController self, Interactor interactor)
+        {
+            self.maxPets = 1;
+            orig(self, interactor);
         }
 
         private void Update()
@@ -137,7 +191,7 @@ namespace SylmarDev.MaxQoL
             {
                 var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
                 Log.LogInfo($"Player pressed F2. Spawning our custom item at coordinates {transform.position}");
-                PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex((ItemIndex)107), transform.position, transform.forward * 20f);
+                PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex((ItemIndex) 107), transform.position, transform.forward * 20f);
             }
         }
     }
