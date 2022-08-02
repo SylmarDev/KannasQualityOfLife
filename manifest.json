@@ -1,0 +1,9 @@
+﻿{
+	"name": "MaxQoL",
+	"version_number": "1.0.0",
+	"website_url": "https://github.com/SylmarDev/MaxQoL",
+	"description": "temp temp temp",
+	"dependencies": [
+		"tristanmcpherson-R2API-4.4.1"
+	]
+}
