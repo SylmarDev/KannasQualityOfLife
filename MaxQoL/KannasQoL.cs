@@ -10,44 +10,37 @@ using System.Reflection;
 using Path = System.IO.Path;
 using UnityEngine.Networking;
 using System.Collections.Generic;
+using EntityStates;
+using MonoMod.Cil;
+using Mono.Cecil.Cil;
+using EntityStates.Duplicator;
 
-namespace SylmarDev.MaxQoL
+namespace SylmarDev.KannasQoL
 {
-	//This is an example plugin that can be put in BepInEx/plugins/ExamplePlugin/ExamplePlugin.dll to test out.
-    //It's a small plugin that adds a relatively simple item to the game, and gives you that item whenever you press F2.
-
-    //This attribute specifies that we have a dependency on R2API, as we're using it to add our item to the game.
-    //You don't need this if you're not using R2API in your plugin, it's just to tell BepInEx to initialize R2API before this plugin so it's safe to use R2API.
     [BepInDependency(R2API.R2API.PluginGUID)]
-	
-	//This attribute is required, and lists metadata for your plugin.
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-	
-	//We will be using 3 modules from R2API: ItemAPI to add our item, ItemDropAPI to have our item drop ingame, and LanguageAPI to add our language tokens.
     [R2APISubmoduleDependency(nameof(ItemAPI), nameof(LanguageAPI))]
-
-    // trying to make client side only
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod)]
 
-    //This is the main declaration of our plugin class. BepInEx searches for all classes inheriting from BaseUnityPlugin to initialize on startup.
-    //BaseUnityPlugin itself inherits from MonoBehaviour, so you can use this as a reference for what you can declare and use in your plugin class: https://docs.unity3d.com/ScriptReference/MonoBehaviour.html
-
-    public class MaxQoL: BaseUnityPlugin
+    public class KannasQoL: BaseUnityPlugin
 	{
         //The Plugin GUID should be a unique ID for this plugin, which is human readable (as it is used in places like the config).
         //If we see this PluginGUID as it is on thunderstore, we will deprecate this mod. Change the PluginAuthor and the PluginName !
         
         public const string PluginAuthor = "SylmarDev";
-        public const string PluginName = "MaxQoL";
+        public const string PluginName = "KannasQualityofLife";
         public const string PluginGUID = PluginAuthor + "." + PluginName;
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "0.1.0";
 
         // assets
         public static AssetBundle assets;
 
         // config file
         //private static ConfigFile cfgFile;
-        
+
+        public static float zeroInitialDelayDuration;
+        public static float zeroTimeBetweenStartAndDropDroplet;
+
 
         public List<ScrapperLocation> slocations = new List<ScrapperLocation>
         {
@@ -87,17 +80,61 @@ namespace SylmarDev.MaxQoL
             //}
 
             Log.LogInfo("Assigning hooks. . .");
+
             // todo
             // instant scrapper and printer
+            On.RoR2.Stage.Start += Stage_Start;
+            On.EntityStates.Duplicator.Duplicating.BeginCooking += Duplicating_BeginCooking;
+
+            IL.EntityStates.Duplicator.Duplicating.FixedUpdate += (il) =>
+            {
+                ILCursor ilcursor = new ILCursor(il);
+                ILCursor ilcursor2 = ilcursor;
+                Func<Instruction, bool>[] array = new Func<Instruction, bool>[9];
+                array[0] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<EntityState>(x, "get_fixedAge"));
+                array[1] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("initialDelayDuration")));
+                array[2] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Blt_Un_S));
+                array[3] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Ldarg_0));
+                array[4] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<Duplicating>(x, "BeginCooking"));
+                array[5] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Ldarg_0));
+                array[6] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<EntityState>(x, "get_fixedAge"));
+                array[7] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("initialDelayDuration")));
+                array[8] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("timeBetweenStartAndDropDroplet")));
+                bool flag = ilcursor2.TryGotoNext(array);
+                if (flag)
+                {
+                    ilcursor.Index++;
+                    ilcursor.Remove();
+                    ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroInitialDelayDuration");
+                    ilcursor.Index += 5;
+                    ilcursor.Remove();
+                    ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroInitialDelayDuration");
+                    ilcursor.Remove();
+                    ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroTimeBetweenStartAndDropDroplet");
+                }
+                else
+                {
+                    Log.LogError("Printer couldn't shortcut");
+                }
+            };
+
+            On.EntityStates.Duplicator.Duplicating.DropDroplet += Duplicating_DropDroplet;
+
             // scrapper in shop
             On.RoR2.BazaarController.Awake += BazaarController_Awake;
 
-            // ping portals in shop to tell which it is
+            // ping lunar seers in shop to tell which it is
             On.RoR2.Util.GetBestBodyName += Util_GetBestBodyName;
+
             // teleporter instantly finishes after boss
             On.RoR2.TeleporterInteraction.UpdateMonstersClear += TeleporterInteraction_UpdateMonstersClear;
-            // red chest and newt altars are pinged at the start of the map
-            // guarenteed cleansing pool on sanctuary
+
+            // red chest and newt altars and preon chest are pinged at the start of the map
+            // wip
+
+            //// guarenteed cleansing pool on sanctuary
+            On.RoR2.Stage.Start += Stage_Start_CleansingPool;
+
             // one frog pet
             On.RoR2.FrogController.Pet += FrogController_Pet;
 
@@ -106,7 +143,37 @@ namespace SylmarDev.MaxQoL
             Log.LogInfo(nameof(Awake) + " done.");
         }
 
-        
+        private void Stage_Start(On.RoR2.Stage.orig_Start orig, Stage self)
+        {
+            orig(self);
+
+            EntityStates.Scrapper.WaitToBeginScrapping.duration = 0f;
+            EntityStates.Scrapper.Scrapping.duration = 0f;
+            EntityStates.Scrapper.ScrappingToIdle.duration = 0f;
+
+            // probably obsolete but why chance it
+            Duplicating.initialDelayDuration = 0.01f;
+            Duplicating.timeBetweenStartAndDropDroplet = 0.01f;
+        }
+
+        private void Duplicating_BeginCooking(On.EntityStates.Duplicator.Duplicating.orig_BeginCooking orig, EntityStates.Duplicator.Duplicating self)
+        {
+            bool flag = !NetworkServer.active;
+            if (flag)
+            {
+                orig(self);
+            }
+        }
+
+        private void Duplicating_DropDroplet(On.EntityStates.Duplicator.Duplicating.orig_DropDroplet orig, EntityStates.Duplicator.Duplicating self)
+        {
+            orig(self);
+            bool active = NetworkServer.active;
+            if (active)
+            {
+                self.outer.GetComponent<PurchaseInteraction>().Networkavailable = true;
+            }
+        }
 
         private void BazaarController_Awake(On.RoR2.BazaarController.orig_Awake orig, BazaarController self)
         {
@@ -173,27 +240,44 @@ namespace SylmarDev.MaxQoL
             }
         }
 
+        private void Stage_Start_CleansingPool(On.RoR2.Stage.orig_Start orig, Stage self)
+        {
+            orig(self);
+            if (SceneInfo.instance.sceneDef.baseSceneName == "ancientloft")
+            {
+                Log.LogMessage("again, it, it just works");
+                DirectorPlacementRule directorPlacementRule = new();
+                directorPlacementRule.placementMode = 0;
+                SpawnCard spawnCard = Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscShrineCleanse");
+                Vector3 loc = new Vector3(-68.0f, 40.5f, 6.3f);
+                GameObject spawnedInstance = spawnCard.DoSpawn(loc, Quaternion.identity, new DirectorSpawnRequest(spawnCard, directorPlacementRule, Run.instance.runRNG)).spawnedInstance;
+                spawnedInstance.transform.eulerAngles = new Vector3(0f, 0f, 0f);
+                NetworkServer.Spawn(spawnedInstance);
+            }
+        }
+
         private void FrogController_Pet(On.RoR2.FrogController.orig_Pet orig, FrogController self, Interactor interactor)
         {
             self.maxPets = 1;
             orig(self, interactor);
         }
 
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.F2))
-            {
-                var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
-                Log.LogMessage($"Current Coords: {transform.position}");
-            }
+        //private void Update()
+        //{
+        //    if (Input.GetKeyDown(KeyCode.F2))
+        //    {
+        //        var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
+        //        Log.LogMessage($"Current Coords: {transform.position}");
+        //        Log.LogMessage(SceneInfo.instance.sceneDef.baseSceneName);
+        //    }
 
-            if (Input.GetKeyDown(KeyCode.F3))
-            {
-                var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
-                Log.LogInfo($"Player pressed F2. Spawning our custom item at coordinates {transform.position}");
-                PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex((ItemIndex) 107), transform.position, transform.forward * 20f);
-            }
-        }
+        //    if (Input.GetKeyDown(KeyCode.F3))
+        //    {
+        //        var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
+        //        Log.LogInfo($"Player pressed F2. Spawning our custom item at coordinates {transform.position}");
+        //        PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex((ItemIndex) 107), transform.position, transform.forward * 20f);
+        //    }
+        //}
     }
 
     public class ScrapperLocation

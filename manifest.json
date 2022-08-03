@@ -1,8 +1,8 @@
 ﻿{
-	"name": "MaxQoL",
-	"version_number": "1.0.0",
+	"name": "Kanna's Quality of Life",
+	"version_number": "0.1.0",
 	"website_url": "https://github.com/SylmarDev/MaxQoL",
-	"description": "temp temp temp",
+	"description": "Collection of changes to make gameplay more consistently enjoyable.",
 	"dependencies": [
 		"tristanmcpherson-R2API-4.4.1"
 	]

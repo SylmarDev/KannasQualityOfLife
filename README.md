@@ -1,27 +1,28 @@
-# AdrianInfo
+# Kanna's Quality of Life
 
-this quirky and interesting mod is made for my friend and renames most items in the game and changes descriptions (no language replacements necessary!). It has only been tested client side but shouldn't cause you any issues if you run it online, maybe, I hope. Replaced item names and descriptions reference CoD, Pokemon, and whatever else was on Adrian's mind when I asked him what he wanted this mod to do.
+My friend gave me a list of things to improve the flow of gameplay. So I did.
 
-## TODO / Issues
+## Things this mod adds
 
-* Test on multiplayer
+* Instant Scrapping and Printing
+* Scrapper(s) in Bazaar (up to however many players there are)
+* Ping Lunar Seers to see destination
+* Teleporter instantly finishes charging after boss is killed, with time adjusted
+* Guaranteed Cleansing Pool on Alphesian Sanctuary
+* Only pet the glass frog once for deep void portal
+
+## TODO
+
+* Testing (hahaha.. good one)
+* Add Pinging Red Chests / Newt Altars on stage start
+* Add config file
+
+### Special Thanks
+* Kanna
+* Kevin (Scrapper in shop implementation)
+* mrchous & Arbition (formulas for tele charge skip)
 
 ## Changelog
 
-**1.1.1**
-* Added NetworkCompatibility line to hopefully fix requiring everyone to have mod to play
-* Fixed Fast Mags icon not showing up
-* Updated a name
-
-**1.1.0**
-
-* Shrine of the Mountain Text Changes
-* Added some item icons
-
-**1.0.0**
-
-* Release version
-
-**0.0.1**
-
-* Indev
+**0.1.0**
+* Mostly done, just need to add pinged items at stage start

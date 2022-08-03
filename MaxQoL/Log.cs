@@ -1,6 +1,6 @@
 ﻿using BepInEx.Logging;
 
-namespace SylmarDev.MaxQoL
+namespace SylmarDev.KannasQoL
 {
     internal static class Log
     {
