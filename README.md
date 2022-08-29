@@ -10,6 +10,7 @@ My friend gave me a list of things to improve the flow of gameplay. So I did.
 * Teleporter instantly finishes charging after boss is killed, with time adjusted
 * Guaranteed Cleansing Pool on Alphesian Sanctuary
 * Only pet the glass frog once for deep void portal
+* Ability to set the frog cost through config, including making it free
 
 ## TODO
 

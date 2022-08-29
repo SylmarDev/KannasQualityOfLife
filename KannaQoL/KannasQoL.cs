@@ -3,11 +3,7 @@ using R2API;
 using R2API.Utils;
 using RoR2;
 using UnityEngine;
-using BepInEx.Configuration;
 using System;
-using System.Reflection;
-
-using Path = System.IO.Path;
 using UnityEngine.Networking;
 using System.Collections.Generic;
 using EntityStates;
@@ -30,7 +26,7 @@ namespace SylmarDev.KannasQoL
         public const string PluginAuthor = "SylmarDev";
         public const string PluginName = "KannasQualityofLife";
         public const string PluginGUID = PluginAuthor + "." + PluginName;
-        public const string PluginVersion = "0.1.0";
+        public const string PluginVersion = "0.2.0";
 
         // assets
         public static AssetBundle assets;
@@ -72,6 +68,8 @@ namespace SylmarDev.KannasQoL
             //Init our logging class so that we can properly log for debugging
             Log.Init(Logger);
 
+            new KannasConfig().Init(Paths.ConfigPath);
+
             // load assets (fingers crossed)
             Log.LogInfo("Loading Resources. . .");
             //using(var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("AdrianInfo.adrianitems_assets"))
@@ -83,60 +81,64 @@ namespace SylmarDev.KannasQoL
 
             // todo
             // instant scrapper and printer
-            On.RoR2.Stage.Start += Stage_Start;
-            On.EntityStates.Duplicator.Duplicating.BeginCooking += Duplicating_BeginCooking;
-
-            IL.EntityStates.Duplicator.Duplicating.FixedUpdate += (il) =>
+            if (KannasConfig.enableFastScrapper.Value)
             {
-                ILCursor ilcursor = new ILCursor(il);
-                ILCursor ilcursor2 = ilcursor;
-                Func<Instruction, bool>[] array = new Func<Instruction, bool>[9];
-                array[0] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<EntityState>(x, "get_fixedAge"));
-                array[1] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("initialDelayDuration")));
-                array[2] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Blt_Un_S));
-                array[3] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Ldarg_0));
-                array[4] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<Duplicating>(x, "BeginCooking"));
-                array[5] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Ldarg_0));
-                array[6] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<EntityState>(x, "get_fixedAge"));
-                array[7] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("initialDelayDuration")));
-                array[8] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("timeBetweenStartAndDropDroplet")));
-                bool flag = ilcursor2.TryGotoNext(array);
-                if (flag)
-                {
-                    ilcursor.Index++;
-                    ilcursor.Remove();
-                    ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroInitialDelayDuration");
-                    ilcursor.Index += 5;
-                    ilcursor.Remove();
-                    ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroInitialDelayDuration");
-                    ilcursor.Remove();
-                    ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroTimeBetweenStartAndDropDroplet");
-                }
-                else
-                {
-                    Log.LogError("Printer couldn't shortcut");
-                }
-            };
+                On.RoR2.Stage.Start += Stage_Start;
+                On.EntityStates.Duplicator.Duplicating.BeginCooking += Duplicating_BeginCooking;
 
-            On.EntityStates.Duplicator.Duplicating.DropDroplet += Duplicating_DropDroplet;
+                IL.EntityStates.Duplicator.Duplicating.FixedUpdate += (il) =>
+                {
+                    ILCursor ilcursor = new ILCursor(il);
+                    ILCursor ilcursor2 = ilcursor;
+                    Func<Instruction, bool>[] array = new Func<Instruction, bool>[9];
+                    array[0] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<EntityState>(x, "get_fixedAge"));
+                    array[1] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("initialDelayDuration")));
+                    array[2] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Blt_Un_S));
+                    array[3] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Ldarg_0));
+                    array[4] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<Duplicating>(x, "BeginCooking"));
+                    array[5] = ((Instruction x) => ILPatternMatchingExt.Match(x, OpCodes.Ldarg_0));
+                    array[6] = ((Instruction x) => ILPatternMatchingExt.MatchCallOrCallvirt<EntityState>(x, "get_fixedAge"));
+                    array[7] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("initialDelayDuration")));
+                    array[8] = ((Instruction x) => ILPatternMatchingExt.MatchLdsfld(x, typeof(Duplicating).GetField("timeBetweenStartAndDropDroplet")));
+                    bool flag = ilcursor2.TryGotoNext(array);
+                    if (flag)
+                    {
+                        ilcursor.Index++;
+                        ilcursor.Remove();
+                        ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroInitialDelayDuration");
+                        ilcursor.Index += 5;
+                        ilcursor.Remove();
+                        ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroInitialDelayDuration");
+                        ilcursor.Remove();
+                        ilcursor.Emit<KannasQoL>(OpCodes.Ldsfld, "zeroTimeBetweenStartAndDropDroplet");
+                    }
+                    else
+                    {
+                        Log.LogError("Printer couldn't shortcut");
+                    }
+                };
+
+                On.EntityStates.Duplicator.Duplicating.DropDroplet += Duplicating_DropDroplet;
+            }
 
             // scrapper in shop
-            On.RoR2.BazaarController.Awake += BazaarController_Awake;
+            if (KannasConfig.enableBazaarScrapper.Value) On.RoR2.BazaarController.Awake += BazaarController_Awake;
 
             // ping lunar seers in shop to tell which it is
-            On.RoR2.Util.GetBestBodyName += Util_GetBestBodyName;
+            if (KannasConfig.enableSeerPing.Value) On.RoR2.Util.GetBestBodyName += Util_GetBestBodyName;
 
             // teleporter instantly finishes after boss
-            On.RoR2.TeleporterInteraction.UpdateMonstersClear += TeleporterInteraction_UpdateMonstersClear;
+            if (KannasConfig.enableInstaTeleporter.Value) On.RoR2.TeleporterInteraction.UpdateMonstersClear += TeleporterInteraction_UpdateMonstersClear;
 
             // red chest and newt altars and preon chest are pinged at the start of the map
             // wip
 
             //// guarenteed cleansing pool on sanctuary
-            On.RoR2.Stage.Start += Stage_Start_CleansingPool;
+            if (KannasConfig.enableCleansingPool.Value) On.RoR2.Stage.Start += Stage_Start_CleansingPool;
 
             // one frog pet
-            On.RoR2.FrogController.Pet += FrogController_Pet;
+            if (KannasConfig.enableSingleFrog.Value) On.RoR2.FrogController.Pet += FrogController_Pet;
+            if (KannasConfig.frogStatueCost.Value != 1) On.RoR2.PurchaseInteraction.Awake += PurchaseInteraction_Awake;
 
 
             // This line of log will appear in the bepinex console when the Awake method is done.
@@ -208,8 +210,7 @@ namespace SylmarDev.KannasQoL
         {
             var name = bodyObject.name;
             var flag = name.Contains("SeerStation");
-            string result = "";
-
+            string result;
             if (flag)
             {
                 SeerStationController component = bodyObject.GetComponent<SeerStationController>();
@@ -232,7 +233,7 @@ namespace SylmarDev.KannasQoL
                 int displayChargePercent = TeleporterInteraction.instance.holdoutZoneController.displayChargePercent;
                 float runStopwatch = Run.instance.GetRunStopwatch();
                 int num = Math.Min(Util.GetItemCountForTeam(self.holdoutZoneController.chargingTeam, RoR2Content.Items.FocusConvergence.itemIndex, true, true), 3);
-                float num2 = (100f - (float)displayChargePercent) / 100f * (TeleporterInteraction.instance.holdoutZoneController.baseChargeDuration / (1f + 0.3f * (float)num));
+                float num2 = (100f - displayChargePercent) / 100f * (TeleporterInteraction.instance.holdoutZoneController.baseChargeDuration / (1f + 0.3f * num));
                 num2 = (float)Math.Round(num2, 2);
                 float runStopwatch2 = runStopwatch + (float)Math.Round((double)num2, 2);
                 Run.instance.SetRunStopwatch(runStopwatch2);
@@ -259,7 +260,23 @@ namespace SylmarDev.KannasQoL
         private void FrogController_Pet(On.RoR2.FrogController.orig_Pet orig, FrogController self, Interactor interactor)
         {
             self.maxPets = 1;
+            Log.LogInfo(self.purchaseInteraction.name);
             orig(self, interactor);
+        }
+
+        private void PurchaseInteraction_Awake(On.RoR2.PurchaseInteraction.orig_Awake orig, PurchaseInteraction self)
+        {
+            orig(self);
+            AdjustFrogPrice(self);
+        }
+
+        private static void AdjustFrogPrice(PurchaseInteraction self)
+        {
+            if (self.name.StartsWith("FrogInteractable"))
+            {
+                self.cost = KannasConfig.frogStatueCost.Value;
+                if (KannasConfig.frogStatueCost.Value == 0) self.costType = CostTypeIndex.None;
+            }
         }
 
         //private void Update()
