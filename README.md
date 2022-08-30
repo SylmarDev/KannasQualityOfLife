@@ -9,21 +9,22 @@ My friend gave me a list of things to improve the flow of gameplay. So I did.
 * Ping Lunar Seers to see destination
 * Teleporter instantly finishes charging after boss is killed, with time adjusted
 * Guaranteed Cleansing Pool on Alphesian Sanctuary
-* Only pet the glass frog once for deep void portal
-* Ability to set the frog cost through config, including making it free
+* Only pet the glass frog once for deep void portal (cost configurable!)
 
 ## TODO
 
 * Testing (hahaha.. good one)
 * Add Pinging Red Chests / Newt Altars on stage start
-* Add config file
 
 ### Special Thanks
+* prod (Making config files work)
 * Kanna
 * Kevin (Scrapper in shop implementation)
 * mrchous & Arbition (formulas for tele charge skip)
 
 ## Changelog
+
+**0.2.0**
 
 **0.1.0**
 * Mostly done, just need to add pinged items at stage start
