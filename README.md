@@ -24,7 +24,12 @@ My friend gave me a list of things to improve the flow of gameplay. So I did.
 
 ## Changelog
 
+**0.2.1**
+* Fixed crash on startup
+
 **0.2.0**
+* Config files now enabled (shoutouts to prod)
+* Fixed bug with lunar seers looking a little weird
 
 **0.1.0**
 * Mostly done, just need to add pinged items at stage start

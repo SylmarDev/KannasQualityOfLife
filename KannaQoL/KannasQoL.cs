@@ -11,22 +11,19 @@ using MonoMod.Cil;
 using Mono.Cecil.Cil;
 using EntityStates.Duplicator;
 
+
 namespace SylmarDev.KannasQoL
 {
-    [BepInDependency(R2API.R2API.PluginGUID)]
+    [BepInDependency(DirectorAPI.PluginGUID)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
-    [R2APISubmoduleDependency(nameof(ItemAPI), nameof(LanguageAPI))]
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod)]
 
     public class KannasQoL: BaseUnityPlugin
-	{
-        //The Plugin GUID should be a unique ID for this plugin, which is human readable (as it is used in places like the config).
-        //If we see this PluginGUID as it is on thunderstore, we will deprecate this mod. Change the PluginAuthor and the PluginName !
-        
+	{      
         public const string PluginAuthor = "SylmarDev";
         public const string PluginName = "KannasQualityofLife";
         public const string PluginGUID = PluginAuthor + "." + PluginName;
-        public const string PluginVersion = "0.2.0";
+        public const string PluginVersion = "0.2.1";
 
         // assets
         public static AssetBundle assets;
@@ -79,7 +76,6 @@ namespace SylmarDev.KannasQoL
 
             Log.LogInfo("Assigning hooks. . .");
 
-            // todo
             // instant scrapper and printer
             if (KannasConfig.enableFastScrapper.Value)
             {
@@ -216,8 +212,9 @@ namespace SylmarDev.KannasQoL
                 SeerStationController component = bodyObject.GetComponent<SeerStationController>();
                 SceneIndex networktargetSceneDefIndex = (SceneIndex)component.NetworktargetSceneDefIndex;
                 //Log.LogMessage(Language.GetString(SceneCatalog.GetSceneDef(networktargetSceneDefIndex).portalSelectionMessageString));
-                var seerText = Language.GetString(SceneCatalog.GetSceneDef(networktargetSceneDefIndex).portalSelectionMessageString).Substring(31);
-                result = "A dream of" + seerText.Remove(seerText.Length - 2, 2) + " ";
+                var seerText = Language.GetString(SceneCatalog.GetSceneDef(networktargetSceneDefIndex).portalSelectionMessageString).Substring(31).Trim();
+                Log.LogMessage(seerText);
+                result = $"A dream of {seerText.Split('<')[0]} ";
             } else
             {
                 result = orig(bodyObject);
@@ -246,7 +243,7 @@ namespace SylmarDev.KannasQoL
             orig(self);
             if (SceneInfo.instance.sceneDef.baseSceneName == "ancientloft")
             {
-                Log.LogMessage("again, it, it just works");
+                //Log.LogMessage("again, it, it just works");
                 DirectorPlacementRule directorPlacementRule = new();
                 directorPlacementRule.placementMode = 0;
                 SpawnCard spawnCard = Resources.Load<SpawnCard>("SpawnCards/InteractableSpawnCard/iscShrineCleanse");
