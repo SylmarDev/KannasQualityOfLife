@@ -1,9 +1,9 @@
 ﻿{
 	"name": "KannasQualityofLife",
-	"version_number": "0.2.1",
+	"version_number": "0.2.2",
 	"website_url": "https://github.com/SylmarDev/RoR2-KannasQualityOfLife",
-	"description": "Collection of changes to make gameplay more consistently enjoyable. Now configurable!",
+	"description": "Configurable quality of life changes to make gameplay more consistently enjoyable.",
 	"dependencies": [
-		"RiskofThunder-R2API_Director-2.1.0"
+		"RiskofThunder-R2API_Director-2.1.3"
 	]
 }

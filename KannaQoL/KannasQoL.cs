@@ -23,7 +23,7 @@ namespace SylmarDev.KannasQoL
         public const string PluginAuthor = "SylmarDev";
         public const string PluginName = "KannasQualityofLife";
         public const string PluginGUID = PluginAuthor + "." + PluginName;
-        public const string PluginVersion = "0.2.1";
+        public const string PluginVersion = "0.2.2";
 
         // assets
         public static AssetBundle assets;
@@ -67,6 +67,8 @@ namespace SylmarDev.KannasQoL
 
             new KannasConfig().Init(Paths.ConfigPath);
 
+            Log.LogInfo($"{PluginGUID} // ver {PluginVersion}");
+
             // load assets (fingers crossed)
             Log.LogInfo("Loading Resources. . .");
             //using(var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("AdrianInfo.adrianitems_assets"))
@@ -79,7 +81,7 @@ namespace SylmarDev.KannasQoL
             // instant scrapper and printer
             if (KannasConfig.enableFastScrapper.Value)
             {
-                On.RoR2.Stage.Start += Stage_Start;
+                Stage.onStageStartGlobal += Stage_Start;
                 On.EntityStates.Duplicator.Duplicating.BeginCooking += Duplicating_BeginCooking;
 
                 IL.EntityStates.Duplicator.Duplicating.FixedUpdate += (il) =>
@@ -130,7 +132,7 @@ namespace SylmarDev.KannasQoL
             // wip
 
             //// guarenteed cleansing pool on sanctuary
-            if (KannasConfig.enableCleansingPool.Value) On.RoR2.Stage.Start += Stage_Start_CleansingPool;
+            if (KannasConfig.enableCleansingPool.Value) Stage.onStageStartGlobal += Stage_Start_CleansingPool;
 
             // one frog pet
             if (KannasConfig.enableSingleFrog.Value) On.RoR2.FrogController.Pet += FrogController_Pet;
@@ -141,10 +143,14 @@ namespace SylmarDev.KannasQoL
             Log.LogInfo(nameof(Awake) + " done.");
         }
 
-        private void Stage_Start(On.RoR2.Stage.orig_Start orig, Stage self)
+        private void Stage_onStageStartGlobal(Stage obj)
         {
-            orig(self);
+            throw new NotImplementedException();
+        }
 
+        private void Stage_Start(Stage self)
+        {
+            Logger.Log(BepInEx.Logging.LogLevel.Debug, "Called Stage_Start()");
             EntityStates.Scrapper.WaitToBeginScrapping.duration = 0f;
             EntityStates.Scrapper.Scrapping.duration = 0f;
             EntityStates.Scrapper.ScrappingToIdle.duration = 0f;
@@ -238,9 +244,9 @@ namespace SylmarDev.KannasQoL
             }
         }
 
-        private void Stage_Start_CleansingPool(On.RoR2.Stage.orig_Start orig, Stage self)
+        private void Stage_Start_CleansingPool(Stage self)
         {
-            orig(self);
+            Logger.Log(BepInEx.Logging.LogLevel.Debug, "Called Stage_Start_CleansingPool()");
             if (SceneInfo.instance.sceneDef.baseSceneName == "ancientloft")
             {
                 //Log.LogMessage("again, it, it just works");
