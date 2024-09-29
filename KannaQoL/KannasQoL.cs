@@ -23,7 +23,7 @@ namespace SylmarDev.KannasQoL
         public const string PluginAuthor = "SylmarDev";
         public const string PluginName = "KannasQualityofLife";
         public const string PluginGUID = PluginAuthor + "." + PluginName;
-        public const string PluginVersion = "0.2.2";
+        public const string PluginVersion = "0.3.2";
 
         // assets
         public static AssetBundle assets;
@@ -137,6 +137,8 @@ namespace SylmarDev.KannasQoL
             // one frog pet
             if (KannasConfig.enableSingleFrog.Value) On.RoR2.FrogController.Pet += FrogController_Pet;
             if (KannasConfig.frogStatueCost.Value != 1) On.RoR2.PurchaseInteraction.Awake += PurchaseInteraction_Awake;
+
+            if (KannasConfig.falseSonPortalInPlanetarium.Value) On.RoR2.VoidRaidGauntletController.SpawnOutroPortal += SpawnOutroPortal_Hook;
 
 
             // This line of log will appear in the bepinex console when the Awake method is done.
@@ -282,23 +284,55 @@ namespace SylmarDev.KannasQoL
             }
         }
 
-        //private void Update()
-        //{
-        //    if (Input.GetKeyDown(KeyCode.F2))
-        //    {
-        //        var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
-        //        Log.LogMessage($"Current Coords: {transform.position}");
-        //        Log.LogMessage(SceneInfo.instance.sceneDef.baseSceneName);
-        //    }
+        private void SpawnOutroPortal_Hook(On.RoR2.VoidRaidGauntletController.orig_SpawnOutroPortal orig, VoidRaidGauntletController self)
+        { 
+            orig(self);
 
-        //    if (Input.GetKeyDown(KeyCode.F3))
-        //    {
-        //        var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
-        //        Log.LogInfo($"Player pressed F2. Spawning our custom item at coordinates {transform.position}");
-        //        PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex((ItemIndex) 107), transform.position, transform.forward * 20f);
-        //    }
-        //}
-    }
+            // spawn Prime Meridian portal
+            if (NetworkServer.active && self.currentDonut != null && self.currentDonut.returnPoint)
+            {
+                Xoroshiro128Plus rng = new Xoroshiro128Plus(self.rngSeed + 1UL);
+                DirectorPlacementRule placementRule = new DirectorPlacementRule
+                {
+                    placementMode = DirectorPlacementRule.PlacementMode.Approximate,
+                    minDistance = self.minOutroPortalDistance,
+                    maxDistance = self.maxOutroPortalDistance,
+                    spawnOnTarget = self.currentDonut.returnPoint
+                };
+
+                var primeMeridianSpawnCard = new InteractableSpawnCard()
+                {
+                    orientToFloor = true,
+                    slightlyRandomizeOrientation = true,
+                    maxSpawnsPerStage = 1,
+                    prefab = RoR2.PortalSpawner.FindSceneObjectsOfType()
+                };
+
+                DirectorSpawnRequest directorSpawnRequest = new DirectorSpawnRequest(self.outroPortalSpawnCard, placementRule, rng);
+                DirectorCore.instance.TrySpawnObject(directorSpawnRequest);
+            }
+            //throw new NotImplementedException();
+        }
+
+
+
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.F2))
+            {
+                var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
+                Log.LogMessage($"Current Coords: {transform.position}");
+                Log.LogMessage(SceneInfo.instance.sceneDef.baseSceneName);
+            }
+
+            //    if (Input.GetKeyDown(KeyCode.F3))
+            //    {
+            //        var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
+            //        Log.LogInfo($"Player pressed F2. Spawning our custom item at coordinates {transform.position}");
+            //        PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex((ItemIndex) 107), transform.position, transform.forward * 20f);
+            //    }
+            //}
+        }
 
     public class ScrapperLocation
     {

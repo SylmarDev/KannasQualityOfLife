@@ -12,6 +12,7 @@ namespace SylmarDev.KannasQoL
         public static ConfigEntry<bool> enableCleansingPool;
         public static ConfigEntry<bool> enableSingleFrog;
         public static ConfigEntry<int> frogStatueCost;
+        public static ConfigEntry<bool> falseSonPortalInPlanetarium;
 
         public void Init(string configPath)
         {
@@ -24,6 +25,7 @@ namespace SylmarDev.KannasQoL
             enableCleansingPool = config.Bind("Tweaks", "Enable Cleansing Pool", true, "Set to true for guaranteed Cleansing Pool on Alphesian Sanctuary.");
             enableSingleFrog = config.Bind("Tweaks", "Enable Single Frog Pet", true, "Set to true to only pet the Glass Frog once for Deep Void Portal.");
             frogStatueCost = config.Bind("Tweaks", "Frog Statue Cost", 10, "Required Lunar Coins per Glass Frog Pet.");
+            falseSonPortalInPlanetarium = config.Bind("Tweaks", "False Son after Voidling", true, "Set to true to enable a portal to Prime Meridian after Voidling is killed.");
         }
     }
 }
