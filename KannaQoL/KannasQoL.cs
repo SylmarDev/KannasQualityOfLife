@@ -11,15 +11,14 @@ using MonoMod.Cil;
 using Mono.Cecil.Cil;
 using EntityStates.Duplicator;
 
-
 namespace SylmarDev.KannasQoL
 {
     [BepInDependency(DirectorAPI.PluginGUID)]
     [BepInPlugin(PluginGUID, PluginName, PluginVersion)]
     [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod)]
 
-    public class KannasQoL: BaseUnityPlugin
-	{      
+    public class KannasQoL : BaseUnityPlugin
+    {
         public const string PluginAuthor = "SylmarDev";
         public const string PluginName = "KannasQualityofLife";
         public const string PluginGUID = PluginAuthor + "." + PluginName;
@@ -138,9 +137,6 @@ namespace SylmarDev.KannasQoL
             if (KannasConfig.enableSingleFrog.Value) On.RoR2.FrogController.Pet += FrogController_Pet;
             if (KannasConfig.frogStatueCost.Value != 1) On.RoR2.PurchaseInteraction.Awake += PurchaseInteraction_Awake;
 
-            if (KannasConfig.falseSonPortalInPlanetarium.Value) On.RoR2.VoidRaidGauntletController.SpawnOutroPortal += SpawnOutroPortal_Hook;
-
-
             // This line of log will appear in the bepinex console when the Awake method is done.
             Log.LogInfo(nameof(Awake) + " done.");
         }
@@ -223,7 +219,8 @@ namespace SylmarDev.KannasQoL
                 var seerText = Language.GetString(SceneCatalog.GetSceneDef(networktargetSceneDefIndex).portalSelectionMessageString).Substring(31).Trim();
                 Log.LogMessage(seerText);
                 result = $"A dream of {seerText.Split('<')[0]} ";
-            } else
+            }
+            else
             {
                 result = orig(bodyObject);
             }
@@ -284,46 +281,14 @@ namespace SylmarDev.KannasQoL
             }
         }
 
-        private void SpawnOutroPortal_Hook(On.RoR2.VoidRaidGauntletController.orig_SpawnOutroPortal orig, VoidRaidGauntletController self)
-        { 
-            orig(self);
-
-            // spawn Prime Meridian portal
-            if (NetworkServer.active && self.currentDonut != null && self.currentDonut.returnPoint)
-            {
-                Xoroshiro128Plus rng = new Xoroshiro128Plus(self.rngSeed + 1UL);
-                DirectorPlacementRule placementRule = new DirectorPlacementRule
-                {
-                    placementMode = DirectorPlacementRule.PlacementMode.Approximate,
-                    minDistance = self.minOutroPortalDistance,
-                    maxDistance = self.maxOutroPortalDistance,
-                    spawnOnTarget = self.currentDonut.returnPoint
-                };
-
-                var primeMeridianSpawnCard = new InteractableSpawnCard()
-                {
-                    orientToFloor = true,
-                    slightlyRandomizeOrientation = true,
-                    maxSpawnsPerStage = 1,
-                    prefab = RoR2.PortalSpawner.FindSceneObjectsOfType()
-                };
-
-                DirectorSpawnRequest directorSpawnRequest = new DirectorSpawnRequest(self.outroPortalSpawnCard, placementRule, rng);
-                DirectorCore.instance.TrySpawnObject(directorSpawnRequest);
-            }
-            //throw new NotImplementedException();
-        }
-
-
-
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F2))
-            {
-                var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
-                Log.LogMessage($"Current Coords: {transform.position}");
-                Log.LogMessage(SceneInfo.instance.sceneDef.baseSceneName);
-            }
+            //if (Input.GetKeyDown(KeyCode.F2))
+            //{
+            //    var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
+            //    Log.LogMessage($"Current Coords: {transform.position}");
+            //    Log.LogMessage(SceneInfo.instance.sceneDef.baseSceneName);
+            //}
 
             //    if (Input.GetKeyDown(KeyCode.F3))
             //    {
@@ -334,9 +299,11 @@ namespace SylmarDev.KannasQoL
             //}
         }
 
-    public class ScrapperLocation
-    {
-        public Vector3 Position;
-        public Vector3 Rotation;
+        public class ScrapperLocation
+        {
+            public Vector3 Position;
+            public Vector3 Rotation;
+        }
+
     }
 }
